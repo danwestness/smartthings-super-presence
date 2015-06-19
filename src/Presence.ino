@@ -16,9 +16,9 @@
 ///           --| 5V         9 |--
 ///           --| GND        8 |--
 ///           --| GND          |
-///           --| Vin        7 |--X Not Here Button
-///             |            6 |--X Here Button
-///           --| A0         5 |--X PIR Sensor
+///           --| Vin        7 |--X Button: Not Present
+///             |            6 |--X Button: Present
+///           --| A0         5 |--X
 ///           --| A1    ( )  4 |--X LED
 ///           --| A2         3 |--X THING_RX
 ///           --| A3  ____   2 |--X THING_TX
@@ -39,10 +39,8 @@
 #define PIN_THING_RX    3
 #define PIN_THING_TX    2
 #define PIN_LED  4
-#define PIN_PIR  5
 #define PIN_BTN_ON  6
 #define PIN_BTN_OFF  7
-#define DURATION  10 * 1000 // seconds to milliseconds
 #define CRLF "\r\n"
 
 // no-cost stream operator as described at
@@ -62,29 +60,24 @@ messageCallout;    // call out function forward decalaration
 SmartThings smartthing( PIN_THING_RX, PIN_THING_TX,
                         messageCallout ); // constructor
 
-bool isDebugEnabled = true;    // enable or disable debug in this example
-
-int stateNetwork;       // state of the network
-
-// unsigned long last_present;
+bool isDebugEnabled = true;     // enable or disable debug in this example
 bool present = false;
-// bool statePresent = false;
-// bool manuallyPresent = false;
+int stateNetwork;               // state of the network
 
 //*****************************************************************************
 // Local Functions  | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
 //                  V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V
 //*****************************************************************************
 void on() {
-    present = true;                 // save state as 1 (on)
+    present = true;                // save state as on
     digitalWrite( PIN_LED, HIGH ); // turn LED on
     // smartthing.shieldSetLED( 0, 0, 2 );
-    smartthing.send( "on" );      // send message to cloud
+    smartthing.send( "on" );       // send message to cloud
 }
 
 //*****************************************************************************
 void off() {
-    present = false;                 // set state to 0 (off)
+    present = false;              // set state to off
     digitalWrite( PIN_LED, LOW ); // turn LED off
     // smartthing.shieldSetLED( 0, 0, 0 );
     smartthing.send( "off" );     // send message to cloud
@@ -96,7 +89,7 @@ void poll() {
     if( present ) {
         smartthing.send( "on" );     // send message to cloud
     } else {
-        smartthing.send( "off" );     // send message to cloud
+        smartthing.send( "off" );    // send message to cloud
     }
 }
 
@@ -143,13 +136,10 @@ void setNetworkStateLED() {
 //*****************************************************************************
 void setup() {
     // setup hardware pins
-    pinMode( PIN_PIR, INPUT );
     pinMode( PIN_BTN_ON, INPUT );
     pinMode( PIN_BTN_OFF, INPUT );
     pinMode( PIN_LED, OUTPUT );
     digitalWrite( PIN_LED, LOW ); // set value to LOW (off) to match stateLED=0
-
-    // last_present = millis();
 
     present = false;              // matches state of hardware pin set below
     stateNetwork = STATE_JOINED;  // set to joined to keep state off if off
@@ -168,32 +158,11 @@ void loop() {
 }
 
 void checkPresence() {
-    int pir_val = digitalRead( PIN_PIR );
+    // Check button states
     int on_btn_val = digitalRead( PIN_BTN_ON );
     int off_btn_val = digitalRead( PIN_BTN_OFF );
 
-    // if( pir_val == HIGH ) {
-    //     last_present = millis();
-    //
-    //     if( !present ) {
-    //         present = true;
-    //         if( isDebugEnabled ) {
-    //             Serial << "motion detected at " << ( millis() / 1000 ) << CRLF;
-    //         }
-    //     }
-    // } else {
-    //     if( present ) {
-    //         if( ( millis() - last_present ) > DURATION ) {
-    //             present = false;
-    //             if( isDebugEnabled ) {
-    //                 Serial << "motion stopped at " << ( millis() / 1000 ) << CRLF;
-    //             }
-    //         } else {
-    //             // not enough time has passed
-    //         }
-    //     }
-    // }
-
+    // Set status based on button presses
     if( on_btn_val == HIGH ) {
         if( isDebugEnabled ) Serial.println( "on pressed" );
         on();
@@ -202,26 +171,6 @@ void checkPresence() {
         if( isDebugEnabled ) Serial.println( "off pressed" );
         off();
     }
-
-    // if( manuallyPresent || present ) {
-    //     if( statePresent != HIGH ) {
-    //         Serial << "- present event" CFLF;
-    //         digitalWrite( PIN_LED, HIGH );
-    //     }
-    // } else {
-    //     if( statePresent != LOW ) {
-    //         Serial << "- not present event" CFLF;
-    //         digitalWrite( PIN_LED, LOW );
-    //     }
-    // }
-    //
-    // // if( isDebugEnabled ) {
-    // //     Serial << pir_val << ": present = " << present
-    // //            << ": manuallyPresent = " << manuallyPresent << ", since = "
-    // //            << ( millis() / 1000 ) << " sec" CRLF;
-    // // }
-    //
-    // statePresent = present;
 }
 
 void messageCallout( String message ) {
@@ -230,8 +179,7 @@ void messageCallout( String message ) {
         Serial << "Received message: '" << message << "'" CRLF;
     }
 
-    // if message contents equals to 'on' then call on() function
-    // else if message contents equals to 'off' then call off() function
+    // Dispatch based on message
     if( message.equals( "on" ) ) {
         on();
     } else if( message.equals( "off" ) ) {

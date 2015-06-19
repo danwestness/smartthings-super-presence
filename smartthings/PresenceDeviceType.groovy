@@ -15,12 +15,11 @@
  */
 
 metadata {
-    // Automatically generated. Make future change here.
     definition (name: "Super Presence Sensor",
             namespace: "mvgrimes", author: "Mark Grimes") {
-        // capability "Actuator"
         capability "Switch"
-        capability "Sensor"
+        // capability "Actuator"
+        // capability "Sensor"  // Add temp later?
         capability "Refresh" // refresh
         capability "Polling" // poll
     }
